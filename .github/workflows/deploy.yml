@@ -1,0 +1,68 @@
+name: Build & Deploy to Archimedes
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test-and-build:
+    name: Test & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: TypeScript Type Check
+        run: npm run typecheck
+
+      - name: Run Vitest Unit Tests
+        run: npm run test
+
+      - name: Production Build
+        run: npm run build
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-artifacts
+          path: dist/
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Archimedes
+    needs: test-and-build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Archimedes Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ARCHIMEDES_HOST }}
+          username: ${{ secrets.ARCHIMEDES_USER }}
+          key: ${{ secrets.ARCHIMEDES_SSH_KEY }}
+          port: ${{ secrets.ARCHIMEDES_PORT || 22 }}
+          script: |
+            set -e
+            cd /var/www/fife_smash
+            git fetch origin main
+            git reset --hard origin/main
+            ./deploy-archimedes.sh host

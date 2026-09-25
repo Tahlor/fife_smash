@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Smash Arena Ultimate</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Inter:wght@400;600;800;900&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow: hidden;
+      background-color: #07080f;
+    }
+
+    .font-smash {
+      font-family: 'Teko', sans-serif;
+      letter-spacing: 0.05em;
+    }
+
+    #game-canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(circle at center, #101426 0%, #05060a 100%);
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 9999px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    .smash-cursor {
+      position: absolute;
+      width: 42px;
+      height: 42px;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+      transition: transform 0.04s ease-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 6px 14px rgba(0,0,0,0.85));
+    }
+    .smash-cursor.clicking {
+      transform: translate(-50%, -50%) scale(0.82);
+    }
+
+    .fighter-tile {
+      transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .fighter-tile:hover {
+      transform: translateY(-3px) scale(1.05);
+      z-index: 30;
+    }
+
+    .stage-card {
+      transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+    }
+    .stage-card:hover {
+      transform: scale(1.03);
+      z-index: 20;
+    }
+  </style>
+</head>
+<body class="bg-[#07080f] text-white h-screen w-screen overflow-hidden flex flex-col">
+
+  <header id="top-bar" class="h-12 bg-[#0c0e18]/95 border-b border-gray-800/80 px-4 flex items-center justify-between z-40 backdrop-blur-md flex-shrink-0">
+    <div class="flex items-center space-x-3">
+      <div class="flex items-center space-x-1.5 cursor-pointer" id="logoTitleHome">
+        <span class="font-smash text-3xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-amber-400 to-indigo-400">
+          SMASH ARENA
+        </span>
+        <span class="text-[10px] font-black uppercase bg-red-600/30 text-red-400 border border-red-500/40 px-1.5 py-0.5 rounded">
+          ULTIMATE
+        </span>
+      </div>
+      <span id="match-status-badge" class="hidden text-xs bg-red-600/40 text-red-300 border border-red-500 px-2 py-0.5 rounded font-bold uppercase tracking-wider animate-pulse">
+        ● LIVE BRAWL
+      </span>
+    </div>
+
+    <div class="flex items-center space-x-2 text-xs">
+      <button id="btnQuickPairJoyCons" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center space-x-1.5 transition active:scale-95">
+        <span>🎮</span>
+        <span class="hidden sm:inline">JOY-CON (R) ➔ P1</span>
+      </button>
+
+      <button id="btnFlipJoyConAxes" class="bg-gray-800 hover:bg-gray-700 text-gray-200 px-2.5 py-1.5 rounded-lg border border-gray-700 transition" title="Flip Joy-Con Stick Axes">
+        <span>🔄</span> <span class="hidden md:inline">FLIP AXES</span>
+      </button>
+
+      <button id="btnOpenGripModal" class="bg-gray-800 hover:bg-gray-700 text-gray-200 px-2.5 py-1.5 rounded-lg border border-gray-700 transition flex items-center space-x-1">
+        <span>⚙️</span> <span class="hidden sm:inline">CONTROLLERS</span>
+      </button>
+
+      <button id="btnLeaveBattle" class="hidden bg-rose-600 hover:bg-rose-500 text-white font-bold px-3.5 py-1.5 rounded-lg shadow transition active:scale-95">
+        EXIT BRAWL
+      </button>
+    </div>
+  </header>
+
+  <main class="relative flex-1 w-full h-full overflow-hidden">
+    <canvas id="game-canvas"></canvas>
+
+    <div id="battle-hud" class="absolute bottom-3 inset-x-0 px-4 pointer-events-none flex justify-center items-end gap-2 sm:gap-3 z-20 transition-all duration-300">
+    </div>
+
+    <div id="announcer-banner" class="absolute inset-0 pointer-events-none flex items-center justify-center z-30 transition-all duration-500 opacity-0 scale-90">
+      <h1 id="announcer-text" class="font-smash text-8xl sm:text-9xl font-extrabold italic tracking-wider text-yellow-400 drop-shadow-[0_12px_30px_rgba(0,0,0,0.95)]">
+        READY!
+      </h1>
+    </div>
+
+    <div id="smash-cursor-p1" class="smash-cursor">
+      <div class="relative flex flex-col items-center">
+        <svg class="w-9 h-9 filter drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]" viewBox="0 0 24 24" fill="#ef4444">
+          <path d="M4 2l16 11-7.5 1.5L8.5 22z" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
+        <span class="text-[10px] font-black bg-red-600 text-white px-2 py-0.2 rounded-full mt-[-5px] shadow">P1 (Joy-Con R)</span>
+      </div>
+    </div>
+
+    <div id="smash-cursor-p2" class="smash-cursor hidden">
+      <div class="relative flex flex-col items-center">
+        <svg class="w-9 h-9 filter drop-shadow-[0_0_10px_rgba(59,130,246,0.9)]" viewBox="0 0 24 24" fill="#3b82f6">
+          <path d="M4 2l16 11-7.5 1.5L8.5 22z" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
+        <span class="text-[10px] font-black bg-blue-600 text-white px-2 py-0.2 rounded-full mt-[-5px] shadow">P2</span>
+      </div>
+    </div>
+  </main>
+
+  <div id="screen-title" class="absolute inset-0 z-30 bg-[#080911]/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+    <div class="max-w-2xl space-y-5">
+      <div class="inline-block px-4 py-1.5 bg-gradient-to-r from-red-600/30 via-yellow-500/20 to-indigo-600/30 border border-amber-500/40 rounded-full text-amber-300 text-xs font-bold tracking-widest uppercase mb-1">
+        ARENA BRAWLER • ULTIMATE EDITION
+      </div>
+      <h1 class="font-smash text-7xl sm:text-8xl md:text-9xl text-transparent bg-clip-text bg-gradient-to-br from-white via-yellow-300 to-red-500 drop-shadow-[0_8px_25px_rgba(239,68,68,0.5)] leading-none">
+        SMASH ARENA
+      </h1>
+      <p class="text-gray-300 text-sm sm:text-base font-medium max-w-lg mx-auto">
+        30 Procedural Fighters • 20 Stages • Special Moves, 5s Invincible Spawns & Victory Podiums
+      </p>
+
+      <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <button id="btnStartGame" class="w-full sm:w-auto bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-smash text-3xl px-12 py-3 rounded-2xl shadow-[0_0_35px_rgba(239,68,68,0.55)] transition transform hover:scale-105 active:scale-95">
+          ENTER SMASH
+        </button>
+        <button id="btnTitleControls" class="w-full sm:w-auto bg-gray-800/90 hover:bg-gray-700 text-gray-200 font-bold px-7 py-3.5 rounded-2xl border border-gray-700 transition">
+          CONTROLLER SETUP
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-results" class="absolute inset-0 z-40 bg-[#06070e]/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center hidden">
+    <div class="max-w-xl w-full space-y-6">
+      <h2 class="font-smash text-7xl text-yellow-400 tracking-wider">VICTORY PODIUM</h2>
+      <div id="podium-list" class="space-y-3 w-full max-w-md mx-auto">
+      </div>
+      <button id="btnResultsContinue" class="bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-smash text-3xl px-10 py-3.5 rounded-2xl shadow-xl transition transform hover:scale-105">
+        CONTINUE TO BRAWLERS ➔
+      </button>
+    </div>
+  </div>
+
+  <div id="screen-css" class="absolute inset-0 z-20 bg-[#090b14] flex flex-col hidden select-none">
+    <div class="h-14 border-b border-gray-800 bg-[#0f1220] px-4 flex items-center justify-between flex-shrink-0">
+      <div class="flex items-center space-x-3">
+        <button id="btnBackToTitle" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg font-semibold transition">
+          ← TITLE
+        </button>
+        <h2 class="font-smash text-3xl tracking-wider text-yellow-400">CHOOSE YOUR BRAWLER</h2>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <button id="btnRandomFighter" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition flex items-center space-x-1.5 active:scale-95">
+          <span>🎲</span> <span>RANDOM</span>
+        </button>
+        <button id="btnAddPlayerSlot" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition active:scale-95">
+          ➕ ADD PLAYER
+        </button>
+        <button id="btnRemovePlayerSlot" class="bg-rose-700 hover:bg-rose-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition active:scale-95">
+          ➖ DETRACT
+        </button>
+      </div>
+    </div>
+
+    <div class="flex-1 p-2.5 overflow-y-auto custom-scroll bg-gradient-to-b from-[#090b14] to-[#0e111d] flex flex-col items-center">
+      <div id="fighter-roster-grid" class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 max-w-7xl mx-auto w-full">
+      </div>
+
+      <div id="css-bottom-confirm-container" class="w-full max-w-md py-6 flex flex-col items-center justify-center transition-all duration-300">
+        <button id="btnGoToStagesBottom" class="w-full bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:from-yellow-400 hover:to-amber-400 text-black font-smash text-3xl sm:text-4xl py-3.5 px-8 rounded-2xl shadow-[0_0_35px_rgba(245,158,11,0.6)] transition transform hover:scale-105 active:scale-95 flex items-center justify-center space-x-3">
+          <span>STAGE SELECTION →</span>
+        </button>
+        <span id="css-ready-status-text" class="text-xs text-yellow-400 mt-2 font-bold tracking-wider uppercase">Ready to select stage!</span>
+      </div>
+    </div>
+
+    <div class="border-t border-gray-800 bg-[#0d0f1b] p-2.5 flex-shrink-0">
+      <div id="css-player-slots-container" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 max-w-7xl mx-auto">
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-sss" class="absolute inset-0 z-20 bg-[#080912] flex flex-col hidden select-none">
+    <div class="h-14 border-b border-gray-800 bg-[#0e111e] px-4 flex items-center justify-between flex-shrink-0">
+      <div class="flex items-center space-x-3">
+        <button id="btnBackToFighters" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg font-semibold transition">
+          ← FIGHTERS
+        </button>
+        <h2 class="font-smash text-3xl tracking-wider text-yellow-400">SELECT STAGE</h2>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <button id="btnRandomStage" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow transition flex items-center space-x-1.5 active:scale-95">
+          <span>🎲</span> <span>RANDOM STAGE</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="flex-1 p-2 sm:p-3 overflow-y-auto custom-scroll flex flex-col items-center">
+      <div id="stage-grid" class="grid grid-cols-4 sm:grid-cols-5 gap-2 w-full max-w-7xl">
+      </div>
+
+      <div class="w-full max-w-md py-6 flex flex-col items-center justify-center">
+        <button id="btnStartMatchNowBottom" class="w-full bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-smash text-3xl sm:text-4xl py-3.5 px-8 rounded-2xl shadow-[0_0_35px_rgba(239,68,68,0.6)] transition transform hover:scale-105 active:scale-95 flex items-center justify-center space-x-3">
+          <span>START BRAWL! ➔</span>
+        </button>
+        <span class="text-xs text-yellow-400 mt-2 font-bold tracking-wider uppercase">Stage Selected: Ready to Fight!</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-grip" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#101424] border border-gray-700 w-full max-w-2xl rounded-2xl p-6 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+        <div>
+          <h3 class="font-smash text-4xl text-yellow-400">CONTROLLER SETUP</h3>
+          <p class="text-xs text-gray-400">Right Joy-Con controls Player 1 cursor & brawler</p>
+        </div>
+        <button id="btnCloseGripModal" class="text-gray-400 hover:text-white text-xl font-bold px-2 py-1">✕</button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <button id="btnProfileRightJoyConP1" class="bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 p-3.5 rounded-xl text-left transition shadow active:scale-98">
+          <div class="font-bold text-sm text-white">⚡ Assign Right Joy-Con ➔ P1</div>
+          <div class="text-xs text-red-100">Drives Player 1 cursor & brawler</div>
+        </button>
+
+        <button id="btnProfileResetAll" class="bg-gray-800 hover:bg-gray-700 p-3.5 rounded-xl text-left border border-gray-700 transition active:scale-98">
+          <div class="font-bold text-sm text-white">🔄 Reset Controller Pairing</div>
+          <div class="text-xs text-gray-400">Rescans connected USB and Bluetooth gamepads</div>
+        </button>
+      </div>
+
+      <div class="pt-2 border-t border-gray-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <label class="flex items-center space-x-1.5 text-gray-300 cursor-pointer">
+          <input type="checkbox" id="chkFlipAxes" class="rounded bg-gray-800 border-gray-700 text-red-500">
+          <span>Invert Joy-Con (R) Stick Axes</span>
+        </label>
+        <button id="btnDoneGripModal" class="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-6 py-2 rounded-xl transition shadow">
+          DONE
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    class SmashAudio {
+      constructor() {
+        this.ctx = null;
+        this.initialized = false;
+      }
+      init() {
+        if (this.initialized) return;
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioCtx();
+          this.initialized = true;
+        } catch (e) {}
+      }
+      beep(freq = 440, type = 'sine', duration = 0.1, gainVal = 0.1) {
+        if (!this.initialized || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch(err) {}
+      }
+      playJump() { this.beep(330, 'sine', 0.14, 0.12); }
+      playAttack() { this.beep(190, 'triangle', 0.1, 0.15); }
+      playSmash() {
+        this.beep(90, 'sawtooth', 0.28, 0.22);
+        this.beep(240, 'square', 0.2, 0.15);
+      }
+      playHit(strong = false) {
+        if (strong) {
+          this.beep(65, 'square', 0.35, 0.3);
+          this.beep(125, 'sawtooth', 0.25, 0.2);
+        } else {
+          this.beep(150, 'triangle', 0.12, 0.15);
+        }
+      }
+      playShield() { this.beep(540, 'sine', 0.08, 0.08); }
+      playSpecial() {
+        this.beep(430, 'sawtooth', 0.2, 0.12);
+        this.beep(650, 'sine', 0.25, 0.1);
+      }
+      playBlast() {
+        this.beep(45, 'square', 0.65, 0.45);
+        this.beep(85, 'sawtooth', 0.5, 0.3);
+      }
+      playSelect() { this.beep(580, 'triangle', 0.08, 0.1); }
+      playStart() {
+        this.beep(440, 'sine', 0.15, 0.15);
+        setTimeout(() => this.beep(660, 'sine', 0.25, 0.2), 120);
+      }
+    }
+    const audio = new SmashAudio();
+    window.addEventListener('click', () => audio.init(), { once: true });
+    window.addEventListener('keydown', () => audio.init(), { once: true });
+
+    const FIGHTERS = [
+      { id: 'vanguard', name: 'Vanguard', emoji: '⚔️', role: 'Paladin', weight: 1.05, speed: 4.8, jump: 11.5, color: '#eab308', specialType: 'holy_beam', desc: 'Balanced holy knight with Excalibur beam.' },
+      { id: 'specter', name: 'Specter', emoji: '🗡️', role: 'Void Rogue', weight: 0.85, speed: 5.8, jump: 12.2, color: '#a855f7', specialType: 'void_kunai', desc: 'Blazing agility and shadow kunai.' },
+      { id: 'titan', name: 'Titan', emoji: '🗿', role: 'Colossus', weight: 1.35, speed: 3.6, jump: 10.0, color: '#78716c', specialType: 'rock_meteor', desc: 'Unstoppable hyper-armor heavy juggernaut.' },
+      { id: 'volt', name: 'Volt', emoji: '⚡', role: 'Electro Raiju', weight: 0.90, speed: 5.6, jump: 12.5, color: '#38bdf8', specialType: 'chain_lightning', desc: 'Rapid electric lunges and chain bolts.' },
+      { id: 'glacia', name: 'Glacia', emoji: '❄️', role: 'Cryo Sorceress', weight: 0.92, speed: 4.6, jump: 11.8, color: '#06b6d4', specialType: 'ice_shards', desc: 'Zoning specialist with freezing crystals.' },
+      { id: 'ignis', name: 'Ignis', emoji: '🐉', role: 'Dragon Brawler', weight: 1.18, speed: 4.4, jump: 11.2, color: '#ef4444', specialType: 'fire_breath', desc: 'Heavy fiery brawler with dragon breath.' },
+      { id: 'zephyr', name: 'Zephyr', emoji: '🦅', role: 'Valkyrie', weight: 0.82, speed: 5.5, jump: 13.5, color: '#22c55e', specialType: 'tornado_blade', desc: 'Unmatched aerial recovery and wind cut.' },
+      { id: 'kage', name: 'Kage', emoji: '🦊', role: 'Kitsune', weight: 0.88, speed: 5.4, jump: 12.0, color: '#f97316', specialType: 'foxfire_orb', desc: 'Mystic fox trickster with homing foxfire.' },
+      { id: 'solaria', name: 'Solaria', emoji: '☀️', role: 'Sun Empress', weight: 1.02, speed: 4.7, jump: 11.6, color: '#fbbf24', specialType: 'solar_flare', desc: 'Radiant burst attacks that knock upward.' },
+      { id: 'umbra', name: 'Umbra', emoji: '🌑', role: 'Reaper', weight: 1.08, speed: 4.5, jump: 11.4, color: '#6366f1', specialType: 'dark_scythe', desc: 'Wide scythe sweeps that pull opponents in.' },
+      { id: 'toxis', name: 'Toxis', emoji: '🐍', role: 'Venom Viper', weight: 0.95, speed: 5.1, jump: 11.7, color: '#10b981', specialType: 'venom_spit', desc: 'Corrosive poison lingering projectiles.' },
+      { id: 'chrono', name: 'Chrono', emoji: '⏳', role: 'Time Warden', weight: 0.98, speed: 4.9, jump: 11.9, color: '#e2e8f0', specialType: 'time_warp', desc: 'Spatial warps and quick teleport counter.' },
+      { id: 'terra', name: 'Terra', emoji: '🐗', role: 'Iron Boar', weight: 1.28, speed: 4.0, jump: 10.5, color: '#b45309', specialType: 'boar_charge', desc: 'Charging juggernaut with knockdown tusks.' },
+      { id: 'gale', name: 'Gale', emoji: '🌪️', role: 'Storm Monk', weight: 0.94, speed: 5.3, jump: 12.3, color: '#3b82f6', specialType: 'gale_kick', desc: 'Martial arts fighter with storm combos.' },
+      { id: 'pulse', name: 'Pulse', emoji: '🤖', role: 'Android', weight: 1.12, speed: 4.7, jump: 11.0, color: '#ec4899', specialType: 'plasma_blaster', desc: 'Futuristic arsenal with explosive zoning.' },
+      { id: 'blossom', name: 'Blossom', emoji: '🌸', role: 'Druid', weight: 0.86, speed: 5.2, jump: 12.4, color: '#f472b6', specialType: 'petal_storm', desc: 'Whip spacing master with floral traps.' },
+      { id: 'fang', name: 'Fang', emoji: '🐺', role: 'Werewolf', weight: 1.06, speed: 5.4, jump: 12.1, color: '#64748b', specialType: 'lunge_claw', desc: 'Aggressive rushdown beast with lunge.' },
+      { id: 'siren', name: 'Siren', emoji: '🧜‍♀️', role: 'Tide Empress', weight: 0.92, speed: 4.8, jump: 11.7, color: '#0ea5e9', specialType: 'tidal_wave', desc: 'Hydrokinetic wave pusher with long-range sweep.' },
+      { id: 'spark', name: 'Spark', emoji: '🧨', role: 'Bomber', weight: 0.80, speed: 5.7, jump: 12.6, color: '#f59e0b', specialType: 'bounce_bomb', desc: 'Chaotic explosives that bounce across platforms.' },
+      { id: 'aegis', name: 'Aegis', emoji: '🛡️', role: 'Guardian', weight: 1.40, speed: 3.3, jump: 9.8, color: '#94a3b8', specialType: 'shield_bash', desc: 'Impenetrable shield with projectile deflection.' },
+      { id: 'mirage', name: 'Mirage', emoji: '🎭', role: 'Illusionist', weight: 0.87, speed: 5.2, jump: 12.0, color: '#c084fc', specialType: 'mirror_clone', desc: 'Cloning trickster that confuses enemy hits.' },
+      { id: 'nova', name: 'Nova', emoji: '🌌', role: 'Cosmic', weight: 1.00, speed: 5.0, jump: 12.5, color: '#8b5cf6', specialType: 'black_hole', desc: 'Micro black hole pulls opponents inward.' },
+      { id: 'apex', name: 'Apex', emoji: '🦖', role: 'Saurian Rex', weight: 1.32, speed: 4.1, jump: 10.4, color: '#15803d', specialType: 'rex_bite', desc: 'Crushing bite attacks with immense knockback.' },
+      { id: 'helix', name: 'Helix', emoji: '🧬', role: 'Shapeshifter', weight: 0.96, speed: 5.1, jump: 11.8, color: '#14b8a6', specialType: 'dna_whip', desc: 'Elongating limbs that adapt to distance.' },
+      { id: 'ronin', name: 'Ronin', emoji: '👺', role: 'Samurai', weight: 1.00, speed: 5.3, jump: 11.9, color: '#dc2626', specialType: 'iaijutsu_slash', desc: 'Precision edge attacks with sweet-spot tips.' },
+      { id: 'blizzard', name: 'Blizzard', emoji: '🐻', role: 'Polar Bear', weight: 1.38, speed: 3.5, jump: 9.9, color: '#bae6fd', specialType: 'avalanche_slam', desc: 'Massive frozen brawler with armor on smashes.' },
+      { id: 'eclipse', name: 'Eclipse', emoji: '🦇', role: 'Vampire', weight: 0.91, speed: 5.4, jump: 12.8, color: '#881337', specialType: 'bat_swarm', desc: 'Multi-jump flight and draining dark attacks.' },
+      { id: 'vulcan', name: 'Vulcan', emoji: '🔨', role: 'Forge Master', weight: 1.25, speed: 3.9, jump: 10.6, color: '#ea580c', specialType: 'anvil_drop', desc: 'Fiery forge hammer with burning ground.' },
+      { id: 'cinder', name: 'Cinder', emoji: '🔥', role: 'Archer', weight: 0.84, speed: 5.6, jump: 13.0, color: '#f97316', specialType: 'flame_arrow', desc: 'Rapid archery zoning with piercing flame arrows.' },
+      { id: 'abyss', name: 'Abyss', emoji: '🐙', role: 'Kraken Priest', weight: 1.20, speed: 4.2, jump: 11.0, color: '#047857', specialType: 'tentacle_slam', desc: 'Deep sea tentacles that blind and knock back.' }
+    ];
+
+    const STAGES = [
+      { id: 'celestial', name: 'Celestial Haven', w: 840, h: 26, platforms: [{x: -200, y: -110, w: 140}, {x: 60, y: -110, w: 140}, {x: -70, y: -210, w: 140}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#0f172a"/><circle cx="50" cy="18" r="14" fill="#fbbf24" opacity="0.35"/><rect x="20" y="44" width="60" height="8" rx="2" fill="#38bdf8"/></svg>` },
+      { id: 'void', name: 'Astral Void', w: 760, h: 28, platforms: [{x: -150, y: -120, w: 130}, {x: 20, y: -120, w: 130}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#030712"/><circle cx="50" cy="30" r="18" fill="#6366f1" opacity="0.45"/><rect x="25" y="46" width="50" height="6" rx="2" fill="#818cf8"/></svg>` },
+      { id: 'cyber', name: 'Neo Cyber City', w: 860, h: 26, platforms: [{x: -220, y: -105, w: 130}, {x: 90, y: -105, w: 130}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#0d081f"/><rect x="22" y="45" width="56" height="7" rx="2" fill="#06b6d4"/></svg>` },
+      { id: 'volcano', name: 'Molten Caldera', w: 800, h: 30, platforms: [{x: -160, y: -130, w: 140}, {x: 20, y: -130, w: 140}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#1c0a0a"/><polygon points="20,60 50,25 80,60" fill="#dc2626" opacity="0.35"/><rect x="24" y="46" width="52" height="8" rx="2" fill="#ea580c"/></svg>` },
+      { id: 'forest', name: 'Whispering Grove', w: 820, h: 28, platforms: [{x: -210, y: -100, w: 130}, {x: 80, y: -100, w: 130}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#052e16"/><rect x="22" y="45" width="56" height="8" rx="2" fill="#16a34a"/></svg>` },
+      { id: 'glacier', name: 'Cryo Spire', w: 780, h: 26, platforms: [{x: -170, y: -125, w: 130}, {x: 40, y: -125, w: 130}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#082f49"/><rect x="24" y="46" width="52" height="7" rx="2" fill="#0ea5e9"/></svg>` },
+      { id: 'desert', name: 'Sunken Oasis', w: 850, h: 26, platforms: [{x: -230, y: -110, w: 130}, {x: 100, y: -110, w: 130}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#292524"/><rect x="22" y="46" width="56" height="7" rx="2" fill="#d97706"/></svg>` },
+      { id: 'crypt', name: 'Haunted Crypt', w: 800, h: 28, platforms: [{x: -180, y: -115, w: 120}, {x: 60, y: -115, w: 120}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#18181b"/><rect x="25" y="46" width="50" height="8" rx="2" fill="#52525b"/></svg>` },
+      { id: 'trench', name: 'Abyssal Trench', w: 840, h: 26, platforms: [{x: -200, y: -115, w: 130}, {x: 70, y: -115, w: 130}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#022c22"/><rect x="22" y="45" width="56" height="8" rx="2" fill="#0f766e"/></svg>` },
+      { id: 'clock', name: 'Clockwork Spire', w: 790, h: 28, platforms: [{x: -160, y: -120, w: 130}, {x: 30, y: -120, w: 130}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#262626"/><rect x="24" y="46" width="52" height="7" rx="2" fill="#a16207"/></svg>` },
+      { id: 'thunder', name: 'Thunder Peak', w: 830, h: 26, platforms: [{x: -210, y: -110, w: 130}, {x: 80, y: -110, w: 130}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#1e1b4b"/><rect x="22" y="46" width="56" height="7" rx="2" fill="#4338ca"/></svg>` },
+      { id: 'neon', name: 'Synth Highway', w: 850, h: 26, platforms: [{x: -180, y: -120, w: 130}, {x: 50, y: -120, w: 130}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#18042b"/><rect x="22" y="46" width="56" height="7" rx="2" fill="#d946ef"/></svg>` },
+      { id: 'dojo', name: 'Imperial Pagoda', w: 810, h: 28, platforms: [{x: -190, y: -110, w: 130}, {x: 60, y: -110, w: 130}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#311111"/><rect x="24" y="46" width="52" height="7" rx="2" fill="#991b1b"/></svg>` },
+      { id: 'colosseum', name: 'Grand Colosseum', w: 880, h: 26, platforms: [{x: -240, y: -110, w: 140}, {x: 100, y: -110, w: 140}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#1c1917"/><rect x="20" y="46" width="60" height="7" rx="2" fill="#57534e"/></svg>` },
+      { id: 'atlantis', name: 'Sunken Atlantis', w: 830, h: 28, platforms: [{x: -200, y: -115, w: 130}, {x: 70, y: -115, w: 130}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#062534"/><rect x="22" y="46" width="56" height="7" rx="2" fill="#0284c7"/></svg>` },
+      { id: 'canopy', name: 'Mushroom Canopy', w: 800, h: 28, platforms: [{x: -170, y: -125, w: 130}, {x: 40, y: -125, w: 130}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#271033"/><rect x="24" y="46" width="52" height="8" rx="2" fill="#9333ea"/></svg>` },
+      { id: 'crystal', name: 'Crystal Cavern', w: 820, h: 26, platforms: [{x: -210, y: -110, w: 130}, {x: 80, y: -110, w: 130}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#130924"/><rect x="22" y="46" width="56" height="7" rx="2" fill="#7e22ce"/></svg>` },
+      { id: 'skyship', name: 'Sky Cruiser', w: 780, h: 26, platforms: [{x: -160, y: -120, w: 120}, {x: 40, y: -120, w: 120}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#1e293b"/><rect x="24" y="46" width="52" height="7" rx="2" fill="#64748b"/></svg>` },
+      { id: 'matrix', name: 'Matrix Nexus', w: 850, h: 26, platforms: [{x: -220, y: -110, w: 130}, {x: 90, y: -110, w: 130}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#021a0a"/><rect x="22" y="46" width="56" height="7" rx="2" fill="#15803d"/></svg>` },
+      { id: 'inferno', name: 'Infernal Core', w: 800, h: 30, platforms: [{x: -180, y: -125, w: 130}, {x: 50, y: -125, w: 130}], art: `<svg viewBox="0 0 100 60" class="w-full h-full"><rect width="100" height="60" fill="#210303"/><rect x="24" y="46" width="52" height="8" rx="2" fill="#b91c1c"/></svg>` }
+    ];
+
+    const PLAYER_SLOTS = [
+      { id: 0, label: 'P1', mode: 'HUMAN', fighterId: 'vanguard', color: '#ef4444', gpIndex: 0 },
+      { id: 1, label: 'P2', mode: 'HUMAN', fighterId: 'specter',  color: '#3b82f6', gpIndex: 1 },
+      { id: 2, label: 'P3', mode: 'NONE',  fighterId: 'titan',    color: '#10b981', gpIndex: 2 },
+      { id: 3, label: 'P4', mode: 'NONE',  fighterId: 'volt',     color: '#f59e0b', gpIndex: 3 },
+      { id: 4, label: 'P5', mode: 'NONE',  fighterId: 'glacia',   color: '#a855f7', gpIndex: 4 },
+      { id: 5, label: 'P6', mode: 'NONE',  fighterId: 'ignis',    color: '#06b6d4', gpIndex: 5 },
+      { id: 6, label: 'P7', mode: 'NONE',  fighterId: 'zephyr',   color: '#ec4899', gpIndex: 6 },
+      { id: 7, label: 'P8', mode: 'NONE',  fighterId: 'kage',     color: '#f97316', gpIndex: 7 }
+    ];
+
+    let selectedStageId = 'celestial';
+    let focusedSlotId = 0;
+    let flipJoyConAxes = false;
+
+    function pollGamepadSlot(slotIndex) {
+      const empty = { x: 0, y: 0, jump: false, attack: false, smash: false, special: false, shield: false };
+      const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      if (!gamepads) return empty;
+
+      const slot = PLAYER_SLOTS[slotIndex];
+      if (!slot || slot.mode !== 'HUMAN') return empty;
+
+      const gp = gamepads[slot.gpIndex];
+      if (!gp || !gp.connected) return empty;
+
+      let stickX = 0;
+      let stickY = 0;
+      const deadzone = 0.14;
+
+      if (slotIndex === 0) {
+        let ax0 = gp.axes[0] || 0;
+        let ax1 = gp.axes[1] || 0;
+        let ax2 = gp.axes[2] || 0;
+        let ax3 = gp.axes[3] || 0;
+
+        let rawAx = Math.abs(ax2) > deadzone ? ax2 : (Math.abs(ax0) > deadzone ? ax0 : 0);
+        let rawAy = Math.abs(ax3) > deadzone ? ax3 : (Math.abs(ax1) > deadzone ? ax1 : 0);
+
+        stickX = -rawAy;
+        stickY = rawAx;
+        if (flipJoyConAxes) {
+          stickX = -stickX;
+          stickY = -stickY;
+        }
+      } else {
+        stickX = gp.axes[0] || 0;
+        stickY = gp.axes[1] || 0;
+      }
+
+      const btn = (i) => gp.buttons[i] && (gp.buttons[i].pressed || gp.buttons[i].value > 0.4);
+      const jump = btn(0) || btn(1) || btn(12) || stickY < -0.55;
+      const attack = btn(2) || btn(14);
+      const special = btn(3) || btn(15);
+      const shield = btn(4) || btn(5) || btn(6) || btn(7);
+      const smash = (Math.abs(stickX) > 0.75 && attack);
+
+      return { x: stickX, y: stickY, jump, attack, smash, special, shield };
+    }
+
+    class VirtualCursorManager {
+      constructor() {
+        this.p1 = { x: window.innerWidth * 0.4, y: window.innerHeight * 0.4, el: document.getElementById('smash-cursor-p1') };
+        this.p2 = { x: window.innerWidth * 0.6, y: window.innerHeight * 0.4, el: document.getElementById('smash-cursor-p2') };
+        this.mouseControlled = true;
+
+        window.addEventListener('mousemove', (e) => {
+          if (this.mouseControlled && !matchActive) {
+            this.p1.x = e.clientX;
+            this.p1.y = e.clientY;
+          }
+        });
+
+        window.addEventListener('mousedown', () => {
+          if (!matchActive) {
+            this.triggerClick(this.p1.x, this.p1.y);
+          }
+        });
+      }
+
+      update() {
+        if (matchActive) {
+          if (this.p1.el) this.p1.el.classList.add('hidden');
+          if (this.p2.el) this.p2.el.classList.add('hidden');
+          return;
+        }
+
+        const p1Pad = pollGamepadSlot(0);
+        if (Math.abs(p1Pad.x) > 0.15 || Math.abs(p1Pad.y) > 0.15) {
+          this.mouseControlled = false;
+          this.p1.x = Math.max(10, Math.min(window.innerWidth - 10, this.p1.x + p1Pad.x * 14));
+          this.p1.y = Math.max(10, Math.min(window.innerHeight - 10, this.p1.y + p1Pad.y * 14));
+        }
+
+        if (this.p1.el) {
+          this.p1.el.classList.remove('hidden');
+          this.p1.el.style.left = `${this.p1.x}px`;
+          this.p1.el.style.top = `${this.p1.y}px`;
+          if (p1Pad.attack || p1Pad.jump || p1Pad.special) {
+            this.triggerClick(this.p1.x, this.p1.y);
+          }
+        }
+      }
+
+      triggerClick(x, y) {
+        if (matchActive) return;
+        const target = document.elementFromPoint(x, y);
+        if (target) {
+          const interactive = target.closest('button, .fighter-tile, .stage-card, .slot-card, .slot-mode-btn');
+          if (interactive) {
+            interactive.click();
+            interactive.classList.add('scale-95', 'bg-yellow-500/30');
+            setTimeout(() => interactive.classList.remove('scale-95', 'bg-yellow-500/30'), 150);
+          }
+        }
+      }
+    }
+    const cursors = new VirtualCursorManager();
+
+    function buildFighterGrid() {
+      const grid = document.getElementById('fighter-roster-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      FIGHTERS.forEach((f) => {
+        const tile = document.createElement('div');
+        tile.className = 'fighter-tile relative bg-gray-800/80 hover:bg-gray-700/90 border border-gray-700 hover:border-yellow-400 p-2 rounded-xl flex flex-col items-center justify-center cursor-pointer shadow transition select-none';
+        tile.innerHTML = `
+          <div class="text-3xl sm:text-4xl mb-1 filter drop-shadow">${f.emoji}</div>
+          <div class="font-bold text-[11px] sm:text-xs text-center text-white tracking-wide truncate w-full">${f.name}</div>
+          <div class="text-[9px] text-amber-400 truncate">${f.role}</div>
+        `;
+        tile.onclick = () => {
+          audio.playSelect();
+          if (PLAYER_SLOTS[focusedSlotId] && PLAYER_SLOTS[focusedSlotId].mode !== 'NONE') {
+            PLAYER_SLOTS[focusedSlotId].fighterId = f.id;
+          } else {
+            PLAYER_SLOTS[0].fighterId = f.id;
+          }
+          renderPlayerSlotCards();
+        };
+        grid.appendChild(tile);
+      });
+
+      const randomTile = document.createElement('div');
+      randomTile.className = 'fighter-tile relative bg-purple-900/60 hover:bg-purple-800/80 border border-purple-600 hover:border-yellow-400 p-2 rounded-xl flex flex-col items-center justify-center cursor-pointer shadow transition select-none';
+      randomTile.innerHTML = `
+        <div class="text-3xl sm:text-4xl mb-1 filter drop-shadow">🎲</div>
+        <div class="font-bold text-[11px] sm:text-xs text-center text-white tracking-wide truncate w-full">RANDOM</div>
+        <div class="text-[9px] text-purple-300 truncate">Roll Fighter</div>
+      `;
+      randomTile.onclick = () => {
+        audio.playSelect();
+        const rand = FIGHTERS[Math.floor(Math.random() * FIGHTERS.length)];
+        if (PLAYER_SLOTS[focusedSlotId] && PLAYER_SLOTS[focusedSlotId].mode !== 'NONE') {
+          PLAYER_SLOTS[focusedSlotId].fighterId = rand.id;
+        } else {
+          PLAYER_SLOTS[0].fighterId = rand.id;
+        }
+        renderPlayerSlotCards();
+      };
+      grid.appendChild(randomTile);
+    }
+
+    function buildStageGrid() {
+      const grid = document.getElementById('stage-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      STAGES.forEach((s) => {
+        const card = document.createElement('div');
+        const isSelected = s.id === selectedStageId;
+        card.className = `stage-card relative rounded-xl overflow-hidden border cursor-pointer transition flex flex-col justify-between p-1.5 select-none ${
+          isSelected ? 'border-yellow-400 bg-yellow-500/20 ring-2 ring-yellow-400/60' : 'border-gray-700 bg-gray-800/60 hover:border-gray-500'
+        }`;
+        card.innerHTML = `
+          <div class="h-10 sm:h-12 w-full rounded-lg overflow-hidden bg-black/50 flex items-center justify-center">
+            ${s.art}
+          </div>
+          <div class="pt-1 flex items-center justify-between">
+            <span class="font-smash text-sm tracking-wider text-white truncate">${s.name}</span>
+            <span class="text-[9px] text-yellow-400 uppercase font-bold">${s.platforms.length} Plats</span>
+          </div>
+        `;
+        card.onclick = () => {
+          audio.playSelect();
+          selectedStageId = s.id;
+          buildStageGrid();
+        };
+        grid.appendChild(card);
+      });
+    }
+
+    function renderPlayerSlotCards() {
+      const container = document.getElementById('css-player-slots-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      PLAYER_SLOTS.forEach((slot, idx) => {
+        const fighter = FIGHTERS.find(f => f.id === slot.fighterId) || FIGHTERS[0];
+        const isNone = slot.mode === 'NONE';
+        const card = document.createElement('div');
+        
+        card.className = `slot-card rounded-xl p-2.5 border transition flex flex-col justify-between select-none ${
+          isNone ? 'bg-gray-900/40 border-gray-800/60 opacity-35' : 'bg-gray-800/80 border-gray-700 shadow-md'
+        } ${focusedSlotId === idx ? 'ring-2 ring-yellow-400' : ''}`;
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-smash text-xl" style="color: ${slot.color}">${slot.label}</span>
+            <button class="slot-mode-btn text-[10px] font-bold px-2 py-0.5 rounded-full border transition ${
+              slot.mode === 'HUMAN' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+              slot.mode === 'CPU' ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' :
+              'bg-gray-800 text-gray-500 border-gray-700'
+            }">
+              ${slot.mode}
+            </button>
+          </div>
+
+          <div class="flex items-center space-x-2 my-1 cursor-pointer">
+            <span class="text-2xl">${isNone ? '⚪' : fighter.emoji}</span>
+            <div class="overflow-hidden">
+              <div class="font-bold text-xs text-white truncate">${isNone ? 'Inactive' : fighter.name}</div>
+              <div class="text-[9px] text-gray-400 truncate">${isNone ? 'Slot Off' : fighter.role}</div>
+            </div>
+          </div>
+        `;
+
+        card.onclick = (e) => {
+          if (e.target.closest('.slot-mode-btn')) {
+            audio.playSelect();
+            if (slot.mode === 'NONE') slot.mode = 'CPU';
+            else if (slot.mode === 'CPU') slot.mode = 'HUMAN';
+            else slot.mode = 'NONE';
+            renderPlayerSlotCards();
+            return;
+          }
+          focusedSlotId = idx;
+          renderPlayerSlotCards();
+        };
+
+        container.appendChild(card);
+      });
+    }
+
+    class FighterInstance {
+      constructor(slot, spawnX, spawnY) {
+        this.slot = slot;
+        this.cfg = FIGHTERS.find(f => f.id === slot.fighterId) || FIGHTERS[0];
+        this.x = spawnX;
+        this.y = spawnY;
+        this.vx = 0;
+        this.vy = 0;
+        this.facing = spawnX < 0 ? 1 : -1;
+        this.isGrounded = false;
+        this.jumpsLeft = 2;
+        
+        this.damage = 0;
+        this.stocks = 3;
+        this.shieldHealth = 100;
+        this.shielding = false;
+        this.hitstun = 0;
+        this.invulnerableTimer = 300; // 5 seconds invulnerable at 60fps
+        this.hasSpawnPlatform = true;
+        this.attackTimer = 0;
+        this.attackType = null;
+        this.hitboxActive = false;
+        this.animPhase = Math.random() * Math.PI * 2;
+      }
+
+      update(stage, fighters, projectiles) {
+        this.animPhase += Math.hypot(this.vx, this.vy) > 0.3 ? 0.25 : 0.05;
+
+        if (this.isGrounded) {
+          this.vx *= 0.80;
+        } else {
+          this.vx *= 0.92;
+          const maxAirSpeed = this.cfg.speed * 1.15;
+          if (Math.abs(this.vx) > maxAirSpeed) {
+            this.vx = Math.sign(this.vx) * maxAirSpeed;
+          }
+        }
+
+        this.vy += 0.50 * this.cfg.weight;
+        if (this.vy > 15) this.vy = 15;
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.hitstun > 0) this.hitstun--;
+        if (this.invulnerableTimer > 0) this.invulnerableTimer--;
+        if (this.attackTimer > 0) {
+          this.attackTimer--;
+          if (this.attackTimer <= 0) {
+            this.attackType = null;
+            this.hitboxActive = false;
+          }
+        }
+
+        if (this.hasSpawnPlatform) {
+          const pY = -120;
+          this.y = pY;
+          this.vy = 0;
+          this.isGrounded = true;
+          this.jumpsLeft = 2;
+          if (this.invulnerableTimer <= 0) {
+            this.hasSpawnPlatform = false;
+          }
+        } else {
+          this.checkCollisions(stage);
+        }
+
+        if (this.shielding) {
+          this.shieldHealth = Math.max(0, this.shieldHealth - 0.45);
+          if (this.shieldHealth <= 0) {
+            this.shielding = false;
+            this.hitstun = 120;
+            audio.playHit(true);
+          }
+        } else {
+          this.shieldHealth = Math.min(100, this.shieldHealth + 0.16);
+        }
+
+        if (this.slot.mode === 'CPU' && this.hitstun <= 0) {
+          this.runCPUAI(stage, fighters, projectiles);
+        }
+      }
+
+      checkCollisions(stage) {
+        this.isGrounded = false;
+        const mainTop = 0;
+        const halfW = stage.w / 2;
+
+        if (this.x >= -halfW && this.x <= halfW) {
+          if (this.y >= mainTop && this.y - this.vy <= mainTop + 16 && this.vy >= 0) {
+            this.y = mainTop;
+            this.vy = 0;
+            this.isGrounded = true;
+            this.jumpsLeft = 2;
+          }
+        }
+
+        stage.platforms.forEach(plat => {
+          if (this.x >= plat.x && this.x <= plat.x + plat.w) {
+            if (this.y >= plat.y && this.y - this.vy <= plat.y + 14 && this.vy >= 0) {
+              this.y = plat.y;
+              this.vy = 0;
+              this.isGrounded = true;
+              this.jumpsLeft = 2;
+            }
+          }
+        });
+      }
+
+      runCPUAI(stage, fighters, projectiles) {
+        let target = null;
+        let minDist = Infinity;
+        fighters.forEach(f => {
+          if (f !== this && f.stocks > 0) {
+            const d = Math.hypot(f.x - this.x, f.y - this.y);
+            if (d < minDist) {
+              minDist = d;
+              target = f;
+            }
+          }
+        });
+
+        if (!target) return;
+
+        const stageEdge = stage.w / 2;
+        if (Math.abs(this.x) > stageEdge && !this.isGrounded) {
+          this.vx += (this.x > 0 ? -1 : 1) * 0.42;
+          if (this.vy > 1 && this.jumpsLeft > 0) {
+            this.vy = -this.cfg.jump;
+            this.jumpsLeft--;
+            audio.playJump();
+          }
+          return;
+        }
+
+        const dx = target.x - this.x;
+        this.facing = dx > 0 ? 1 : -1;
+        if (Math.abs(dx) > 42) {
+          this.vx += (dx > 0 ? 1 : -1) * 0.36;
+        }
+
+        if (target.y < this.y - 40 && this.isGrounded && Math.random() < 0.05) {
+          this.vy = -this.cfg.jump;
+          this.hasSpawnPlatform = false;
+          audio.playJump();
+        }
+
+        if (minDist < 60 && this.attackTimer <= 0) {
+          if (Math.random() < 0.5) this.executeAttack('jab');
+          else this.executeAttack('smash');
+        } else if (minDist < 280 && Math.random() < 0.035 && this.attackTimer <= 0) {
+          this.executeSpecial(projectiles);
+        }
+      }
+
+      executeAttack(type) {
+        if (this.attackTimer > 0) return;
+        this.attackType = type;
+        this.attackTimer = type === 'smash' ? 22 : 14;
+        this.hitboxActive = true;
+        if (type === 'smash') audio.playSmash();
+        else audio.playAttack();
+      }
+
+      executeSpecial(projectiles) {
+        if (this.attackTimer > 0) return;
+        this.attackType = 'special';
+        this.attackTimer = 26;
+        audio.playSpecial();
+
+        projectiles.push({
+          owner: this,
+          x: this.x + this.facing * 26,
+          y: this.y - 22,
+          vx: this.facing * 12,
+          vy: this.cfg.specialType === 'rock_meteor' ? 4 : 0,
+          color: this.cfg.color,
+          type: this.cfg.specialType,
+          life: 80,
+          damage: 14
+        });
+      }
+
+      draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        if (this.invulnerableTimer > 0 && Math.floor(Date.now() / 50) % 2 === 0) {
+          ctx.globalAlpha = 0.5;
+        }
+
+        if (this.invulnerableTimer > 0) {
+          ctx.beginPath();
+          ctx.arc(0, -22, 34, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(250, 204, 21, 0.25)';
+          ctx.strokeStyle = '#facc15';
+          ctx.lineWidth = 2.5;
+          ctx.fill();
+          ctx.stroke();
+        }
+
+        if (this.shielding) {
+          ctx.beginPath();
+          ctx.arc(0, -22, 30 * (this.shieldHealth / 100), 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(59, 130, 246, 0.35)';
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 2.5;
+          ctx.fill();
+          ctx.stroke();
+        }
+
+        ctx.scale(this.facing, 1);
+
+        const legSwing = Math.sin(this.animPhase) * (Math.abs(this.vx) > 0.2 ? 14 : 3);
+        const armSwing = Math.cos(this.animPhase) * (Math.abs(this.vx) > 0.2 ? 12 : 2);
+
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-4, -14);
+        ctx.lineTo(-8 - legSwing, -4);
+        ctx.lineTo(-12 - legSwing, 0);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-6, -30);
+        ctx.lineTo(-14 - armSwing, -20);
+        ctx.stroke();
+
+        ctx.fillStyle = this.cfg.color;
+        ctx.beginPath();
+        ctx.roundRect(-12, -38, 24, 26, [6]);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(4, -14);
+        ctx.lineTo(8 + legSwing, -4);
+        ctx.lineTo(12 + legSwing, 0);
+        ctx.stroke();
+
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.arc(0, -46, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = this.cfg.color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = this.cfg.color;
+        ctx.fillRect(2, -49, 8, 4);
+
+        ctx.beginPath();
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 5;
+        let handX = 14 + armSwing;
+        let handY = -26;
+        if (this.attackTimer > 0) {
+          handX = 26;
+          handY = -30;
+        }
+        ctx.moveTo(6, -30);
+        ctx.lineTo(handX, handY);
+        ctx.stroke();
+
+        if (this.attackTimer > 0 && this.hitboxActive) {
+          ctx.beginPath();
+          ctx.arc(18, -24, this.attackType === 'smash' ? 38 : 26, -Math.PI / 3, Math.PI / 3);
+          ctx.strokeStyle = this.attackType === 'smash' ? '#f59e0b' : '#ffffff';
+          ctx.lineWidth = 5;
+          ctx.stroke();
+        }
+
+        ctx.restore();
+
+        ctx.fillStyle = this.slot.color;
+        ctx.font = 'bold 12px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.slot.label, this.x, this.y - 64);
+      }
+    }
+
+    let matchActive = false;
+    let activeFighters = [];
+    let activeProjectiles = [];
+    let currentStage = STAGES[0];
+    let camera = { x: 0, y: -80, zoom: 1 };
+
+    function startSmashBattle() {
+      audio.playStart();
+      document.getElementById('screen-sss').classList.add('hidden');
+      document.getElementById('screen-css').classList.add('hidden');
+      document.getElementById('screen-title').classList.add('hidden');
+      document.getElementById('screen-results').classList.add('hidden');
+      document.getElementById('btnLeaveBattle').classList.remove('hidden');
+      document.getElementById('match-status-badge').classList.remove('hidden');
+
+      currentStage = STAGES.find(s => s.id === selectedStageId) || STAGES[0];
+      activeProjectiles = [];
+      activeFighters = [];
+
+      const participants = PLAYER_SLOTS.filter(s => s.mode !== 'NONE');
+      if (participants.length < 2) {
+        PLAYER_SLOTS[1].mode = 'CPU';
+        participants.push(PLAYER_SLOTS[1]);
+      }
+
+      const spacing = currentStage.w / (participants.length + 1);
+      participants.forEach((slot, idx) => {
+        const spawnX = -currentStage.w / 2 + spacing * (idx + 1);
+        activeFighters.push(new FighterInstance(slot, spawnX, -120));
+      });
+
+      matchActive = true;
+      buildBattleHUD();
+      showAnnouncer('READY!');
+      setTimeout(() => showAnnouncer('GO!'), 1000);
+    }
+
+    function showAnnouncer(text) {
+      const banner = document.getElementById('announcer-banner');
+      const label = document.getElementById('announcer-text');
+      if (!banner || !label) return;
+      label.textContent = text;
+      banner.classList.remove('opacity-0', 'scale-90');
+      banner.classList.add('opacity-100', 'scale-100');
+      setTimeout(() => {
+        banner.classList.remove('opacity-100', 'scale-100');
+        banner.classList.add('opacity-0', 'scale-90');
+      }, 700);
+    }
+
+    function buildBattleHUD() {
+      const hud = document.getElementById('battle-hud');
+      if (!hud) return;
+      hud.innerHTML = '';
+
+      activeFighters.forEach((f, idx) => {
+        const card = document.createElement('div');
+        card.id = `hud-card-${idx}`;
+        card.className = 'bg-gray-900/80 border border-gray-700/80 px-3 py-2 rounded-xl backdrop-blur-md flex flex-col items-center min-w-[95px] shadow-lg';
+        card.innerHTML = `
+          <div class="flex items-center space-x-1.5 w-full justify-between">
+            <span class="font-smash text-lg" style="color: ${f.slot.color}">${f.slot.label}</span>
+            <span id="hud-stocks-${idx}" class="text-xs text-yellow-400">❤️❤️❤️</span>
+          </div>
+          <div id="hud-pct-${idx}" class="font-smash text-3xl text-white tracking-wider my-0.5">0%</div>
+          <div class="text-[10px] text-gray-400 truncate max-w-[80px]">${f.cfg.name}</div>
+        `;
+        hud.appendChild(card);
+      });
+    }
+
+    function updateBattleHUD() {
+      activeFighters.forEach((f, idx) => {
+        const pctEl = document.getElementById(`hud-pct-${idx}`);
+        const stocksEl = document.getElementById(`hud-stocks-${idx}`);
+        if (pctEl) {
+          pctEl.textContent = `${Math.floor(f.damage)}%`;
+          pctEl.style.color = f.damage > 100 ? '#ef4444' : f.damage > 60 ? '#f59e0b' : '#ffffff';
+        }
+        if (stocksEl) {
+          stocksEl.textContent = '❤️'.repeat(Math.max(0, f.stocks));
+        }
+      });
+    }
+
+    const keys = {};
+    window.addEventListener('keydown', (e) => keys[e.code] = true);
+    window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+    function handleKeyboardInputs() {
+      // Player 1: WASD controls movement & jump, Z/J (Jab), X/K (Smash), C/L (Special), Shift/S (Shield)
+      const p1 = activeFighters.find(f => f.slot.id === 0);
+      if (p1 && p1.slot.mode === 'HUMAN' && p1.hitstun <= 0) {
+        if (keys['KeyA']) {
+          p1.vx -= p1.cfg.speed * 0.22;
+          p1.facing = -1;
+        }
+        if (keys['KeyD']) {
+          p1.vx += p1.cfg.speed * 0.22;
+          p1.facing = 1;
+        }
+        if (keys['KeyW'] || keys['Space']) {
+          if (p1.isGrounded) {
+            p1.vy = -p1.cfg.jump;
+            p1.hasSpawnPlatform = false;
+            audio.playJump();
+          } else if (p1.jumpsLeft > 0 && p1.vy > -2) {
+            p1.vy = -p1.cfg.jump * 0.9;
+            p1.jumpsLeft--;
+            p1.hasSpawnPlatform = false;
+            audio.playJump();
+          }
+        }
+        if (keys['KeyZ'] || keys['KeyJ']) p1.executeAttack('jab');
+        if (keys['KeyX'] || keys['KeyK']) p1.executeAttack('smash');
+        if (keys['KeyC'] || keys['KeyL']) p1.executeSpecial(activeProjectiles);
+        p1.shielding = Boolean(keys['ShiftLeft'] || keys['KeyS']) && p1.isGrounded;
+      }
+
+      // Player 2: Arrow keys control movement & jump, NumPad/I/O/P for attacks
+      const p2 = activeFighters.find(f => f.slot.id === 1);
+      if (p2 && p2.slot.mode === 'HUMAN' && p2.hitstun <= 0) {
+        if (keys['ArrowLeft']) {
+          p2.vx -= p2.cfg.speed * 0.22;
+          p2.facing = -1;
+        }
+        if (keys['ArrowRight']) {
+          p2.vx += p2.cfg.speed * 0.22;
+          p2.facing = 1;
+        }
+        if (keys['ArrowUp']) {
+          if (p2.isGrounded) {
+            p2.vy = -p2.cfg.jump;
+            p2.hasSpawnPlatform = false;
+            audio.playJump();
+          } else if (p2.jumpsLeft > 0 && p2.vy > -2) {
+            p2.vy = -p2.cfg.jump * 0.9;
+            p2.jumpsLeft--;
+            p2.hasSpawnPlatform = false;
+            audio.playJump();
+          }
+        }
+        if (keys['KeyN'] || keys['KeyI']) p2.executeAttack('jab');
+        if (keys['KeyM'] || keys['KeyO']) p2.executeAttack('smash');
+        if (keys['Slash'] || keys['KeyP']) p2.executeSpecial(activeProjectiles);
+        p2.shielding = Boolean(keys['ArrowDown'] || keys['RightShift']) && p2.isGrounded;
+      }
+    }
+
+    function updateBattlePhysics() {
+      if (!matchActive) return;
+
+      handleKeyboardInputs();
+
+      activeFighters.forEach(f => {
+        if (f.slot.mode === 'HUMAN') {
+          const pad = pollGamepadSlot(f.slot.id);
+          if (f.hitstun <= 0) {
+            if (Math.abs(pad.x) > 0.18) {
+              f.vx += pad.x * f.cfg.speed * 0.22;
+              f.facing = pad.x > 0 ? 1 : -1;
+            }
+            if ((pad.jump || pad.y < -0.55) && f.isGrounded) {
+              f.vy = -f.cfg.jump;
+              f.hasSpawnPlatform = false;
+              audio.playJump();
+            } else if ((pad.jump || pad.y < -0.55) && f.jumpsLeft > 0 && f.vy > -2) {
+              f.vy = -f.cfg.jump * 0.9;
+              f.jumpsLeft--;
+              f.hasSpawnPlatform = false;
+              audio.playJump();
+            }
+            if (pad.smash) f.executeAttack('smash');
+            else if (pad.attack) f.executeAttack('jab');
+            else if (pad.special) f.executeSpecial(activeProjectiles);
+
+            f.shielding = pad.shield && f.isGrounded && f.shieldHealth > 10;
+          }
+        }
+        f.update(currentStage, activeFighters, activeProjectiles);
+      });
+
+      for (let i = activeProjectiles.length - 1; i >= 0; i--) {
+        const p = activeProjectiles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+
+        activeFighters.forEach(f => {
+          if (f !== p.owner && f.invulnerableTimer <= 0 && f.stocks > 0) {
+            if (Math.hypot(f.x - p.x, (f.y - 22) - p.y) < 30) {
+              p.life = 0;
+              if (f.shielding) {
+                f.shieldHealth -= p.damage * 1.5;
+                audio.playShield();
+              } else {
+                f.damage += p.damage;
+                f.hitstun = 14 + Math.floor(f.damage * 0.15);
+                const damageScaledKnockback = (p.damage + (f.damage * 0.22)) / f.cfg.weight;
+                f.vx = Math.sign(p.vx) * damageScaledKnockback;
+                f.vy = -damageScaledKnockback * 0.6;
+                audio.playHit(false);
+              }
+            }
+          }
+        });
+
+        if (p.life <= 0) activeProjectiles.splice(i, 1);
+      }
+
+      activeFighters.forEach(attacker => {
+        if (attacker.hitboxActive && attacker.attackTimer > 0) {
+          const reach = attacker.attackType === 'smash' ? 44 : 28;
+          const hitX = attacker.x + attacker.facing * (reach / 2);
+          const hitY = attacker.y - 22;
+
+          activeFighters.forEach(victim => {
+            if (victim !== attacker && victim.invulnerableTimer <= 0 && victim.stocks > 0) {
+              if (Math.hypot(victim.x - hitX, (victim.y - 22) - hitY) < reach) {
+                attacker.hitboxActive = false;
+                if (victim.shielding) {
+                  victim.shieldHealth -= attacker.attackType === 'smash' ? 26 : 12;
+                  audio.playShield();
+                } else {
+                  const baseDamage = attacker.attackType === 'smash' ? 18 : 8;
+                  victim.damage += baseDamage;
+                  
+                  const totalKnockback = (baseDamage + (victim.damage * 0.22)) / victim.cfg.weight;
+                  victim.hitstun = Math.floor(totalKnockback * 1.8);
+                  victim.vx = attacker.facing * totalKnockback;
+                  victim.vy = -totalKnockback * 0.7;
+                  audio.playHit(attacker.attackType === 'smash');
+                }
+              }
+            }
+          });
+        }
+      });
+
+      const blastX = currentStage.w / 2 + 500;
+      const blastTop = -650;
+      const blastBottom = 450;
+
+      activeFighters.forEach(f => {
+        if (f.stocks > 0) {
+          if (f.x < -blastX || f.x > blastX || f.y < blastTop || f.y > blastBottom) {
+            audio.playBlast();
+            f.stocks--;
+            if (f.stocks > 0) {
+              f.x = 0;
+              f.y = -140;
+              f.vx = 0;
+              f.vy = 0;
+              f.damage = 0;
+              f.invulnerableTimer = 300;
+              f.hasSpawnPlatform = true;
+            }
+          }
+        }
+      });
+
+      const livingTotal = activeFighters.filter(f => f.stocks > 0);
+      if (livingTotal.length <= 1) {
+        endBattle();
+      }
+
+      updateBattleHUD();
+    }
+
+    function endBattle() {
+      matchActive = false;
+      showAnnouncer('GAME!');
+      setTimeout(() => {
+        document.getElementById('btnLeaveBattle').classList.add('hidden');
+        document.getElementById('match-status-badge').classList.add('hidden');
+        document.getElementById('battle-hud').innerHTML = '';
+        showResultsPodium();
+      }, 1800);
+    }
+
+    function showResultsPodium() {
+      const resultsScreen = document.getElementById('screen-results');
+      const listEl = document.getElementById('podium-list');
+      if (!resultsScreen || !listEl) return;
+
+      const sorted = [...activeFighters].sort((a, b) => b.stocks - a.stocks || a.damage - b.damage);
+      listEl.innerHTML = '';
+
+      sorted.forEach((f, idx) => {
+        const item = document.createElement('div');
+        item.className = 'bg-gray-800/90 border border-gray-700 p-3.5 rounded-xl flex items-center justify-between shadow';
+        item.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <span class="font-smash text-2xl text-yellow-400">#${idx + 1}</span>
+            <span class="text-3xl">${f.cfg.emoji}</span>
+            <div class="text-left">
+              <div class="font-bold text-sm text-white" style="color: ${f.slot.color}">${f.slot.label} (${f.cfg.name})</div>
+              <div class="text-xs text-gray-400">Stocks Left: ${f.stocks}</div>
+            </div>
+          </div>
+          <span class="font-smash text-xl text-yellow-300">${idx === 0 ? '🏆 WINNER' : `${Math.floor(f.damage)}%`}</span>
+        `;
+        listEl.appendChild(item);
+      });
+
+      resultsScreen.classList.remove('hidden');
+    }
+
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function renderGame() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (matchActive) {
+        updateBattlePhysics();
+
+        let avgX = 0;
+        let avgY = 0;
+        let count = 0;
+        activeFighters.forEach(f => {
+          if (f.stocks > 0) {
+            avgX += f.x;
+            avgY += f.y;
+            count++;
+          }
+        });
+
+        if (count > 0) {
+          avgX /= count;
+          avgY /= count;
+          camera.x += (avgX - camera.x) * 0.08;
+          camera.y += (avgY - camera.y) * 0.08;
+        }
+      }
+
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(camera.zoom, camera.zoom);
+      ctx.translate(-camera.x, -camera.y);
+
+      drawStageDetails(ctx, currentStage);
+
+      activeFighters.forEach(f => {
+        if (f.hasSpawnPlatform && f.stocks > 0) {
+          ctx.fillStyle = 'rgba(250, 204, 21, 0.45)';
+          ctx.strokeStyle = '#facc15';
+          ctx.lineWidth = 2.5;
+          ctx.fillRect(f.x - 60, -120, 120, 12);
+          ctx.strokeRect(f.x - 60, -120, 120, 12);
+        }
+      });
+
+      activeProjectiles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+
+      activeFighters.forEach(f => {
+        if (f.stocks > 0) f.draw(ctx);
+      });
+
+      ctx.restore();
+
+      cursors.update();
+      requestAnimationFrame(renderGame);
+    }
+
+    function drawStageDetails(ctx, stage) {
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.moveTo(-stage.w / 2, 0);
+      ctx.lineTo(stage.w / 2, 0);
+      ctx.lineTo(stage.w / 2 - 40, 90);
+      ctx.lineTo(-stage.w / 2 + 40, 90);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(-stage.w / 2, 0, stage.w, stage.h);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(-stage.w / 2, 0, stage.w, stage.h);
+
+      stage.platforms.forEach(plat => {
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.25)';
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.fillRect(plat.x, plat.y, plat.w, 10);
+        ctx.strokeRect(plat.x, plat.y, plat.w, 10);
+      });
+    }
+
+    window.onload = function() {
+      buildFighterGrid();
+      buildStageGrid();
+      renderPlayerSlotCards();
+
+      document.getElementById('btnStartGame').onclick = () => {
+        audio.playStart();
+        document.getElementById('screen-title').classList.add('hidden');
+        document.getElementById('screen-css').classList.remove('hidden');
+      };
+
+      document.getElementById('btnTitleControls').onclick = () => {
+        audio.playSelect();
+        document.getElementById('modal-grip').classList.remove('hidden');
+      };
+
+      document.getElementById('btnCloseGripModal').onclick = () => {
+        document.getElementById('modal-grip').classList.add('hidden');
+      };
+
+      document.getElementById('btnDoneGripModal').onclick = () => {
+        document.getElementById('modal-grip').classList.add('hidden');
+      };
+
+      document.getElementById('logoTitleHome').onclick = () => {
+        audio.playSelect();
+        document.getElementById('screen-css').classList.add('hidden');
+        document.getElementById('screen-sss').classList.add('hidden');
+        document.getElementById('screen-results').classList.add('hidden');
+        document.getElementById('screen-title').classList.remove('hidden');
+      };
+
+      document.getElementById('btnBackToTitle').onclick = () => {
+        audio.playSelect();
+        document.getElementById('screen-css').classList.add('hidden');
+        document.getElementById('screen-title').classList.remove('hidden');
+      };
+
+      document.getElementById('btnResultsContinue').onclick = () => {
+        audio.playSelect();
+        document.getElementById('screen-results').classList.add('hidden');
+        document.getElementById('screen-css').classList.remove('hidden');
+      };
+
+      const goToStagesAction = () => {
+        audio.playSelect();
+        document.getElementById('screen-css').classList.add('hidden');
+        document.getElementById('screen-sss').classList.remove('hidden');
+      };
+
+      const btnBottomConfirm = document.getElementById('btnGoToStagesBottom');
+      if (btnBottomConfirm) btnBottomConfirm.onclick = goToStagesAction;
+
+      document.getElementById('btnBackToFighters').onclick = () => {
+        audio.playSelect();
+        document.getElementById('screen-sss').classList.add('hidden');
+        document.getElementById('screen-css').classList.remove('hidden');
+      };
+
+      const startMatchAction = () => startSmashBattle();
+      const btnBottomStageStart = document.getElementById('btnStartMatchNowBottom');
+      if (btnBottomStageStart) btnBottomStageStart.onclick = startMatchAction;
+      document.getElementById('btnLeaveBattle').onclick = () => endBattle();
+
+      document.getElementById('btnQuickPairJoyCons').onclick = () => {
+        audio.playSelect();
+        PLAYER_SLOTS[0].mode = 'HUMAN';
+        PLAYER_SLOTS[0].gpIndex = 0;
+        renderPlayerSlotCards();
+      };
+
+      document.getElementById('btnProfileRightJoyConP1').onclick = () => {
+        audio.playSelect();
+        PLAYER_SLOTS[0].mode = 'HUMAN';
+        PLAYER_SLOTS[0].gpIndex = 0;
+        renderPlayerSlotCards();
+      };
+
+      document.getElementById('chkFlipAxes').onchange = (e) => {
+        flipJoyConAxes = e.target.checked;
+      };
+
+      document.getElementById('btnFlipJoyConAxes').onclick = () => {
+        flipJoyConAxes = !flipJoyConAxes;
+        audio.playSelect();
+      };
+
+      document.getElementById('btnRandomFighter').onclick = () => {
+        audio.playSelect();
+        const rand = FIGHTERS[Math.floor(Math.random() * FIGHTERS.length)];
+        PLAYER_SLOTS[focusedSlotId].fighterId = rand.id;
+        renderPlayerSlotCards();
+      };
+
+      document.getElementById('btnAddPlayerSlot').onclick = () => {
+        audio.playSelect();
+        const inactive = PLAYER_SLOTS.find(s => s.mode === 'NONE');
+        if (inactive) {
+          inactive.mode = 'CPU';
+          renderPlayerSlotCards();
+        }
+      };
+
+      document.getElementById('btnRemovePlayerSlot').onclick = () => {
+        audio.playSelect();
+        const active = [...PLAYER_SLOTS].reverse().find(s => s.mode !== 'NONE' && s.id > 1);
+        if (active) {
+          active.mode = 'NONE';
+          renderPlayerSlotCards();
+        }
+      };
+
+      document.getElementById('btnRandomStage').onclick = () => {
+        audio.playSelect();
+        const rand = STAGES[Math.floor(Math.random() * STAGES.length)];
+        selectedStageId = rand.id;
+        buildStageGrid();
+      };
+
+      requestAnimationFrame(renderGame);
+    };
+  </script>
+</body>
+</html>

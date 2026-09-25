@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Smash Arena Ultimate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow: hidden;
+      background-color: #07080f;
+    }
+
+    .font-smash {
+      font-family: 'Teko', sans-serif;
+      letter-spacing: 0.05em;
+    }
+
+    #game-canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(circle at center, #101426 0%, #05060a 100%);
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 9999px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    .smash-cursor {
+      position: absolute;
+      width: 42px;
+      height: 42px;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+      transition: transform 0.04s ease-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 6px 14px rgba(0,0,0,0.85));
+    }
+    .smash-cursor.clicking {
+      transform: translate(-50%, -50%) scale(0.82);
+    }
+
+    .fighter-tile {
+      transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .fighter-tile:hover {
+      transform: translateY(-3px) scale(1.05);
+      z-index: 30;
+    }
+
+    .stage-card {
+      transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+    }
+    .stage-card:hover {
+      transform: scale(1.03);
+      z-index: 20;
+    }
+  </style>
+</head>
+<body class="bg-[#07080f] text-white h-screen w-screen overflow-hidden flex flex-col">
+
+  <!-- Top Bar -->
+  <header id="top-bar" class="h-12 bg-[#0c0e18]/95 border-b border-gray-800/80 px-4 flex items-center justify-between z-40 backdrop-blur-md flex-shrink-0">
+    <div class="flex items-center space-x-3">
+      <div class="flex items-center space-x-1.5 cursor-pointer" id="logoTitleHome">
+        <span class="font-smash text-3xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-amber-400 to-indigo-400">
+          SMASH ARENA
+        </span>
+        <span class="text-[10px] font-black uppercase bg-red-600/30 text-red-400 border border-red-500/40 px-1.5 py-0.5 rounded">
+          ULTIMATE
+        </span>
+      </div>
+      <span id="match-status-badge" class="hidden text-xs bg-red-600/40 text-red-300 border border-red-500 px-2 py-0.5 rounded font-bold uppercase tracking-wider animate-pulse">
+        ● LIVE BRAWL
+      </span>
+    </div>
+
+    <div class="flex items-center space-x-2 text-xs">
+      <button id="btnQuickPairJoyCons" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center space-x-1.5 transition active:scale-95">
+        <span>🎮</span>
+        <span class="hidden sm:inline">JOY-CON (R) ➔ P1</span>
+      </button>
+
+      <button id="btnFlipJoyConAxes" class="bg-gray-800 hover:bg-gray-700 text-gray-200 px-2.5 py-1.5 rounded-lg border border-gray-700 transition" title="Flip Joy-Con Stick Axes">
+        <span>🔄</span> <span class="hidden md:inline">FLIP AXES</span>
+      </button>
+
+      <button id="btnOpenGripModal" class="bg-gray-800 hover:bg-gray-700 text-gray-200 px-2.5 py-1.5 rounded-lg border border-gray-700 transition flex items-center space-x-1">
+        <span>⚙️</span> <span class="hidden sm:inline">CONTROLLERS</span>
+      </button>
+
+      <button id="btnLeaveBattle" class="hidden bg-rose-600 hover:bg-rose-500 text-white font-bold px-3.5 py-1.5 rounded-lg shadow transition active:scale-95">
+        EXIT BRAWL
+      </button>
+    </div>
+  </header>
+
+  <!-- Canvas and Battle Overlays -->
+  <main class="relative flex-1 w-full h-full overflow-hidden">
+    <canvas id="game-canvas"></canvas>
+
+    <div id="battle-hud" class="absolute bottom-3 inset-x-0 px-4 pointer-events-none flex justify-center items-end gap-2 sm:gap-3 z-20 transition-all duration-300">
+    </div>
+
+    <div id="announcer-banner" class="absolute inset-0 pointer-events-none flex items-center justify-center z-30 transition-all duration-500 opacity-0 scale-90">
+      <h1 id="announcer-text" class="font-smash text-8xl sm:text-9xl font-extrabold italic tracking-wider text-yellow-400 drop-shadow-[0_12px_30px_rgba(0,0,0,0.95)]">
+        READY!
+      </h1>
+    </div>
+
+    <!-- Smash Virtual Cursors -->
+    <div id="smash-cursor-p1" class="smash-cursor">
+      <div class="relative flex flex-col items-center">
+        <svg class="w-9 h-9 filter drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]" viewBox="0 0 24 24" fill="#ef4444">
+          <path d="M4 2l16 11-7.5 1.5L8.5 22z" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
+        <span class="text-[10px] font-black bg-red-600 text-white px-2 py-0.2 rounded-full mt-[-5px] shadow">P1 (Joy-Con R)</span>
+      </div>
+    </div>
+
+    <div id="smash-cursor-p2" class="smash-cursor hidden">
+      <div class="relative flex flex-col items-center">
+        <svg class="w-9 h-9 filter drop-shadow-[0_0_10px_rgba(59,130,246,0.9)]" viewBox="0 0 24 24" fill="#3b82f6">
+          <path d="M4 2l16 11-7.5 1.5L8.5 22z" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
+        <span class="text-[10px] font-black bg-blue-600 text-white px-2 py-0.2 rounded-full mt-[-5px] shadow">P2</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- Title Screen -->
+  <div id="screen-title" class="absolute inset-0 z-30 bg-[#080911]/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+    <div class="max-w-2xl space-y-5">
+      <div class="inline-block px-4 py-1.5 bg-gradient-to-r from-red-600/30 via-yellow-500/20 to-indigo-600/30 border border-amber-500/40 rounded-full text-amber-300 text-xs font-bold tracking-widest uppercase mb-1">
+        ARENA BRAWLER • ULTIMATE EDITION
+      </div>
+      <h1 class="font-smash text-7xl sm:text-8xl md:text-9xl text-transparent bg-clip-text bg-gradient-to-br from-white via-yellow-300 to-red-500 drop-shadow-[0_8px_25px_rgba(239,68,68,0.5)] leading-none">
+        SMASH ARENA
+      </h1>
+      <p class="text-gray-300 text-sm sm:text-base font-medium max-w-lg mx-auto">
+        30 Procedural Fighters • 20 Stages • Special Moves, 5s Invincible Spawns & Victory Podiums
+      </p>
+
+      <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <button id="btnStartGame" class="w-full sm:w-auto bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-smash text-3xl px-12 py-3 rounded-2xl shadow-[0_0_35px_rgba(239,68,68,0.55)] transition transform hover:scale-105 active:scale-95">
+          ENTER SMASH
+        </button>
+        <button id="btnTitleControls" class="w-full sm:w-auto bg-gray-800/90 hover:bg-gray-700 text-gray-200 font-bold px-7 py-3.5 rounded-2xl border border-gray-700 transition">
+          CONTROLLER SETUP
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Character Select Screen (CSS) -->
+  <div id="screen-css" class="absolute inset-0 z-20 bg-[#090b14] flex flex-col hidden select-none">
+    <div class="h-14 border-b border-gray-800 bg-[#0f1220] px-4 flex items-center justify-between flex-shrink-0">
+      <div class="flex items-center space-x-3">
+        <button id="btnBackToTitle" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg font-semibold transition">
+          ← TITLE
+        </button>
+        <h2 class="font-smash text-3xl tracking-wider text-yellow-400">CHOOSE YOUR BRAWLER</h2>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <button id="btnRandomFighter" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition flex items-center space-x-1.5 active:scale-95">
+          <span>🎲</span> <span>RANDOM</span>
+        </button>
+        <button id="btnAddPlayerSlot" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition active:scale-95">
+          ➕ ADD PLAYER
+        </button>
+        <button id="btnRemovePlayerSlot" class="bg-rose-700 hover:bg-rose-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition active:scale-95">
+          ➖ DETRACT
+        </button>
+      </div>
+    </div>
+
+    <div class="flex-1 p-2.5 overflow-y-auto custom-scroll bg-gradient-to-b from-[#090b14] to-[#0e111d] flex flex-col items-center">
+      <div id="fighter-roster-grid" class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 max-w-7xl mx-auto w-full">
+      </div>
+
+      <div id="css-bottom-confirm-container" class="w-full max-w-md py-6 flex flex-col items-center justify-center transition-all duration-300">
+        <button id="btnGoToStagesBottom" class="w-full bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:from-yellow-400 hover:to-amber-400 text-black font-smash text-3xl sm:text-4xl py-3.5 px-8 rounded-2xl shadow-[0_0_35px_rgba(245,158,11,0.6)] transition transform hover:scale-105 active:scale-95 flex items-center justify-center space-x-3">
+          <span>STAGE SELECTION →</span>
+        </button>
+        <span id="css-ready-status-text" class="text-xs text-yellow-400 mt-2 font-bold tracking-wider uppercase">Ready to select stage!</span>
+      </div>
+    </div>
+
+    <div class="border-t border-gray-800 bg-[#0d0f1b] p-2.5 flex-shrink-0">
+      <div id="css-player-slots-container" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 max-w-7xl mx-auto">
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage Select Screen (SSS) -->
+  <div id="screen-sss" class="absolute inset-0 z-20 bg-[#080912] flex flex-col hidden select-none">
+    <div class="h-14 border-b border-gray-800 bg-[#0e111e] px-4 flex items-center justify-between flex-shrink-0">
+      <div class="flex items-center space-x-3">
+        <button id="btnBackToFighters" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg font-semibold transition">
+          ← FIGHTERS
+        </button>
+        <h2 class="font-smash text-3xl tracking-wider text-yellow-400">SELECT STAGE</h2>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <button id="btnRandomStage" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow transition flex items-center space-x-1.5 active:scale-95">
+          <span>🎲</span> <span>RANDOM STAGE</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="flex-1 p-2 sm:p-3 overflow-y-auto custom-scroll flex flex-col items-center">
+      <div id="stage-grid" class="grid grid-cols-4 sm:grid-cols-5 gap-2 w-full max-w-7xl">
+      </div>
+
+      <div class="w-full max-w-md py-6 flex flex-col items-center justify-center">
+        <button id="btnStartMatchNowBottom" class="w-full bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-smash text-3xl sm:text-4xl py-3.5 px-8 rounded-2xl shadow-[0_0_35px_rgba(239,68,68,0.6)] transition transform hover:scale-105 active:scale-95 flex items-center justify-center space-x-3">
+          <span>START BRAWL! ➔</span>
+        </button>
+        <span class="text-xs text-yellow-400 mt-2 font-bold tracking-wider uppercase">Stage Selected: Ready to Fight!</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Victory Podium Results Screen -->
+  <div id="screen-results" class="absolute inset-0 z-40 bg-[#06070e]/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center hidden">
+    <div class="max-w-xl w-full space-y-6">
+      <h2 class="font-smash text-7xl text-yellow-400 tracking-wider">VICTORY PODIUM</h2>
+      <div id="podium-list" class="space-y-3 w-full max-w-md mx-auto">
+      </div>
+      <button id="btnResultsContinue" class="bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-smash text-3xl px-10 py-3.5 rounded-2xl shadow-xl transition transform hover:scale-105">
+        CONTINUE TO BRAWLERS ➔
+      </button>
+    </div>
+  </div>
+
+  <!-- Controller Setup & Grip Modal -->
+  <div id="modal-grip" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#101424] border border-gray-700 w-full max-w-2xl rounded-2xl p-6 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+        <div>
+          <h3 class="font-smash text-4xl text-yellow-400">CONTROLLER SETUP</h3>
+          <p class="text-xs text-gray-400">Right Joy-Con controls Player 1 cursor & brawler</p>
+        </div>
+        <button id="btnCloseGripModal" class="text-gray-400 hover:text-white text-xl font-bold px-2 py-1">✕</button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <button id="btnProfileRightJoyConP1" class="bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 p-3.5 rounded-xl text-left transition shadow active:scale-98">
+          <div class="font-bold text-sm text-white">⚡ Assign Right Joy-Con ➔ P1</div>
+          <div class="text-xs text-red-100">Drives Player 1 cursor & brawler</div>
+        </button>
+
+        <button id="btnProfileResetAll" class="bg-gray-800 hover:bg-gray-700 p-3.5 rounded-xl text-left border border-gray-700 transition active:scale-98">
+          <div class="font-bold text-sm text-white">🔄 Reset Controller Pairing</div>
+          <div class="text-xs text-gray-400">Rescans connected USB and Bluetooth gamepads</div>
+        </button>
+      </div>
+
+      <div class="pt-2 border-t border-gray-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <label class="flex items-center space-x-1.5 text-gray-300 cursor-pointer">
+          <input type="checkbox" id="chkFlipAxes" class="rounded bg-gray-800 border-gray-700 text-red-500">
+          <span>Invert Joy-Con (R) Stick Axes</span>
+        </label>
+        <button id="btnDoneGripModal" class="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-6 py-2 rounded-xl transition shadow">
+          DONE
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
