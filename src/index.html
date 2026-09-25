@@ -103,8 +103,8 @@
         <span>🔄</span> <span class="hidden md:inline">FLIP AXES</span>
       </button>
 
-      <button id="btnOpenGripModal" class="bg-gray-800 hover:bg-gray-700 text-gray-200 px-2.5 py-1.5 rounded-lg border border-gray-700 transition flex items-center space-x-1">
-        <span>⚙️</span> <span class="hidden sm:inline">CONTROLLERS</span>
+      <button id="btnOpenGripModal" class="bg-indigo-700 hover:bg-indigo-600 text-white font-bold px-3 py-1.5 rounded-lg border border-indigo-400/40 shadow transition flex items-center space-x-1.5 active:scale-95" title="View Full Controls & Help">
+        <span>⌨️</span> <span>CONTROLS & HELP</span>
       </button>
 
       <button id="btnLeaveBattle" class="hidden bg-rose-600 hover:bg-rose-500 text-white font-bold px-3.5 py-1.5 rounded-lg shadow transition active:scale-95">
@@ -116,6 +116,13 @@
   <!-- Canvas and Battle Overlays -->
   <main class="relative flex-1 w-full h-full overflow-hidden">
     <canvas id="game-canvas"></canvas>
+
+    <!-- In-Brawl Quick Controls Hint -->
+    <div id="battle-controls-hint" class="absolute top-3 right-4 z-20 pointer-events-auto">
+      <button id="btnOpenControlsHint" class="bg-gray-900/80 hover:bg-gray-800 text-amber-300 hover:text-white px-3 py-1.5 rounded-xl border border-amber-500/40 text-xs font-bold flex items-center space-x-1.5 shadow-lg backdrop-blur transition active:scale-95">
+        <span>⌨️</span> <span>HOW TO PLAY</span>
+      </button>
+    </div>
 
     <div id="battle-hud" class="absolute bottom-3 inset-x-0 px-4 pointer-events-none flex justify-center items-end gap-2 sm:gap-3 z-20 transition-all duration-300">
     </div>
@@ -147,8 +154,8 @@
   </main>
 
   <!-- Title Screen -->
-  <div id="screen-title" class="absolute inset-0 z-30 bg-[#080911]/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
-    <div class="max-w-2xl space-y-5">
+  <div id="screen-title" class="absolute inset-0 z-30 bg-[#080911]/95 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 text-center overflow-y-auto custom-scroll">
+    <div class="max-w-2xl w-full space-y-4 my-auto">
       <div class="inline-block px-4 py-1.5 bg-gradient-to-r from-red-600/30 via-yellow-500/20 to-indigo-600/30 border border-amber-500/40 rounded-full text-amber-300 text-xs font-bold tracking-widest uppercase mb-1">
         ARENA BRAWLER • ULTIMATE EDITION
       </div>
@@ -159,13 +166,52 @@
         30 Procedural Fighters • 20 Stages • Special Moves, 5s Invincible Spawns & Victory Podiums
       </p>
 
-      <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+      <div class="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
         <button id="btnStartGame" class="w-full sm:w-auto bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-smash text-3xl px-12 py-3 rounded-2xl shadow-[0_0_35px_rgba(239,68,68,0.55)] transition transform hover:scale-105 active:scale-95">
           ENTER SMASH
         </button>
-        <button id="btnTitleControls" class="w-full sm:w-auto bg-gray-800/90 hover:bg-gray-700 text-gray-200 font-bold px-7 py-3.5 rounded-2xl border border-gray-700 transition">
-          CONTROLLER SETUP
+        <button id="btnTitleControls" class="w-full sm:w-auto bg-gray-800/90 hover:bg-gray-700 text-gray-200 font-bold px-7 py-3.5 rounded-2xl border border-gray-700 transition flex items-center justify-center space-x-2">
+          <span>⌨️</span> <span>KEYBOARD & CONTROLLERS</span>
         </button>
+      </div>
+
+      <!-- Quick-Reference Keyboard Cheat Sheet Cards -->
+      <div class="pt-3 border-t border-gray-800/80 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left max-w-xl mx-auto text-xs bg-gray-900/75 p-3.5 rounded-2xl border border-gray-700/80 shadow-2xl backdrop-blur-md">
+        <div class="space-y-1.5">
+          <div class="font-bold text-red-400 flex items-center justify-between border-b border-gray-800 pb-1">
+            <div class="flex items-center space-x-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span>
+              <span class="font-smash text-base tracking-wide text-red-300">PLAYER 1 (KEYBOARD)</span>
+            </div>
+            <span class="text-[9px] bg-red-950/60 text-red-400 px-1.5 py-0.5 rounded border border-red-800/50">LEFT</span>
+          </div>
+          <div class="text-gray-300 space-y-1 font-mono text-[11px]">
+            <div class="flex justify-between items-center"><span class="text-gray-400">Move:</span> <span><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">A</kbd> <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">D</kbd></span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-400">Jump / Drop:</span> <span><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">W</kbd> / <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">Space</kbd> / <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">S</kbd></span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-400">Jab (Light):</span> <span><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-white font-bold">Z</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-white font-bold">J</kbd></span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-400">Smash (Heavy):</span> <span><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-orange-400 font-bold">X</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-orange-400 font-bold">K</kbd></span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-400">Special Move:</span> <span><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-sky-400 font-bold">C</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-sky-400 font-bold">L</kbd></span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-400">Shield:</span> <span><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-blue-300 font-bold">Shift</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-blue-300 font-bold">S</kbd></span></div>
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <div class="font-bold text-blue-400 flex items-center justify-between border-b border-gray-800 pb-1">
+            <div class="flex items-center space-x-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>
+              <span class="font-smash text-base tracking-wide text-blue-300">PLAYER 2 (KEYBOARD)</span>
+            </div>
+            <span class="text-[9px] bg-blue-950/60 text-blue-400 px-1.5 py-0.5 rounded border border-blue-800/50">RIGHT</span>
+          </div>
+          <div class="text-gray-300 space-y-1 font-mono text-[11px]">
+            <div class="flex justify-between items-center"><span class="text-gray-400">Move:</span> <span><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">←</kbd> <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">→</kbd></span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-400">Jump / Drop:</span> <span><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">↑</kbd> / <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">↓</kbd></span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-400">Jab (Light):</span> <span><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-white font-bold">N</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-white font-bold">I</kbd></span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-400">Smash (Heavy):</span> <span><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-orange-400 font-bold">M</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-orange-400 font-bold">O</kbd></span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-400">Special Move:</span> <span><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-sky-400 font-bold">/</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-sky-400 font-bold">P</kbd></span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-400">Shield:</span> <span><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-blue-300 font-bold">RShift</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-blue-300 font-bold">↓</kbd></span></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -178,6 +224,9 @@
           ← TITLE
         </button>
         <h2 class="font-smash text-3xl tracking-wider text-yellow-400">CHOOSE YOUR BRAWLER</h2>
+        <span class="hidden lg:inline-block text-[11px] text-gray-400 bg-gray-900/60 px-2.5 py-1 rounded-full border border-gray-800">
+          ⌨️ P1: WASD+Z/X/C • P2: Arrows+N/M// • Joy-Con / Gamepads auto-detected
+        </span>
       </div>
 
       <div class="flex items-center space-x-2">
@@ -253,36 +302,138 @@
     </div>
   </div>
 
-  <!-- Controller Setup & Grip Modal -->
-  <div id="modal-grip" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-[#101424] border border-gray-700 w-full max-w-2xl rounded-2xl p-6 shadow-2xl space-y-5">
-      <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+  <!-- Controller Setup & Help Modal -->
+  <div id="modal-grip" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="bg-[#101424] border border-gray-700 w-full max-w-3xl rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-gray-800 pb-3 flex-shrink-0">
         <div>
-          <h3 class="font-smash text-4xl text-yellow-400">CONTROLLER SETUP</h3>
-          <p class="text-xs text-gray-400">Right Joy-Con controls Player 1 cursor & brawler</p>
+          <h3 class="font-smash text-4xl text-yellow-400 tracking-wider">CONTROLS & HARDWARE SETUP</h3>
+          <p class="text-xs text-gray-400">Full Keyboard (2-Player Local) & Gamepad Guide</p>
         </div>
-        <button id="btnCloseGripModal" class="text-gray-400 hover:text-white text-xl font-bold px-2 py-1">✕</button>
+        <button id="btnCloseGripModal" class="text-gray-400 hover:text-white text-2xl font-bold px-3 py-1 rounded-lg hover:bg-gray-800 transition">✕</button>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <button id="btnProfileRightJoyConP1" class="bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 p-3.5 rounded-xl text-left transition shadow active:scale-98">
-          <div class="font-bold text-sm text-white">⚡ Assign Right Joy-Con ➔ P1</div>
-          <div class="text-xs text-red-100">Drives Player 1 cursor & brawler</div>
+      <!-- Tab Buttons -->
+      <div class="flex items-center space-x-2 border-b border-gray-800 text-xs font-bold flex-shrink-0">
+        <button class="controls-tab-btn pb-2.5 px-3 border-b-2 border-yellow-400 text-yellow-400 transition" data-tab="keyboard">
+          ⌨️ KEYBOARD (2P)
         </button>
-
-        <button id="btnProfileResetAll" class="bg-gray-800 hover:bg-gray-700 p-3.5 rounded-xl text-left border border-gray-700 transition active:scale-98">
-          <div class="font-bold text-sm text-white">🔄 Reset Controller Pairing</div>
-          <div class="text-xs text-gray-400">Rescans connected USB and Bluetooth gamepads</div>
+        <button class="controls-tab-btn pb-2.5 px-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 transition" data-tab="joycon">
+          🕹️ SWITCH JOY-CON
+        </button>
+        <button class="controls-tab-btn pb-2.5 px-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 transition" data-tab="gamepad">
+          🎮 STANDARD GAMEPADS
         </button>
       </div>
 
-      <div class="pt-2 border-t border-gray-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+      <!-- Tab Content Area (Scrollable) -->
+      <div class="flex-1 overflow-y-auto custom-scroll pr-1 space-y-4">
+        <!-- Tab 1: Keyboard -->
+        <div id="tab-panel-keyboard" class="controls-tab-panel space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <!-- P1 Card -->
+            <div class="bg-gray-900/90 border border-red-500/40 p-4 rounded-xl space-y-2">
+              <div class="font-bold text-red-400 flex items-center justify-between border-b border-gray-800 pb-1.5">
+                <span class="font-smash text-lg tracking-wider text-red-300">PLAYER 1 (LEFT SIDE)</span>
+                <span class="text-[10px] bg-red-600/30 text-red-300 px-2 py-0.5 rounded border border-red-500/40">WASD</span>
+              </div>
+              <table class="w-full text-xs font-mono">
+                <tbody class="divide-y divide-gray-800/60">
+                  <tr><td class="py-1 text-gray-400">Move Left / Right</td><td class="text-right py-1"><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">A</kbd> <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">D</kbd></td></tr>
+                  <tr><td class="py-1 text-gray-400">Jump (Double Jump)</td><td class="text-right py-1"><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">W</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">Space</kbd></td></tr>
+                  <tr><td class="py-1 text-gray-400">Fast Fall / Platform Drop</td><td class="text-right py-1"><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">S</kbd></td></tr>
+                  <tr><td class="py-1 text-gray-400">Jab (Light Attack)</td><td class="text-right py-1"><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-white font-bold">Z</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-white font-bold">J</kbd></td></tr>
+                  <tr><td class="py-1 text-gray-400">Smash (Heavy Launch)</td><td class="text-right py-1"><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-orange-400 font-bold">X</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-orange-400 font-bold">K</kbd></td></tr>
+                  <tr><td class="py-1 text-gray-400">Special Signature Move</td><td class="text-right py-1"><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-sky-400 font-bold">C</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-sky-400 font-bold">L</kbd></td></tr>
+                  <tr><td class="py-1 text-gray-400">Shield Bubble</td><td class="text-right py-1"><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-blue-300 font-bold">Left Shift</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-blue-300 font-bold">S</kbd></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- P2 Card -->
+            <div class="bg-gray-900/90 border border-blue-500/40 p-4 rounded-xl space-y-2">
+              <div class="font-bold text-blue-400 flex items-center justify-between border-b border-gray-800 pb-1.5">
+                <span class="font-smash text-lg tracking-wider text-blue-300">PLAYER 2 (RIGHT SIDE)</span>
+                <span class="text-[10px] bg-blue-600/30 text-blue-300 px-2 py-0.5 rounded border border-blue-500/40">ARROWS</span>
+              </div>
+              <table class="w-full text-xs font-mono">
+                <tbody class="divide-y divide-gray-800/60">
+                  <tr><td class="py-1 text-gray-400">Move Left / Right</td><td class="text-right py-1"><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">←</kbd> <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">→</kbd></td></tr>
+                  <tr><td class="py-1 text-gray-400">Jump (Double Jump)</td><td class="text-right py-1"><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">↑</kbd></td></tr>
+                  <tr><td class="py-1 text-gray-400">Fast Fall / Platform Drop</td><td class="text-right py-1"><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-amber-300 font-bold">↓</kbd></td></tr>
+                  <tr><td class="py-1 text-gray-400">Jab (Light Attack)</td><td class="text-right py-1"><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-white font-bold">N</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-white font-bold">I</kbd></td></tr>
+                  <tr><td class="py-1 text-gray-400">Smash (Heavy Launch)</td><td class="text-right py-1"><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-orange-400 font-bold">M</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-orange-400 font-bold">O</kbd></td></tr>
+                  <tr><td class="py-1 text-gray-400">Special Signature Move</td><td class="text-right py-1"><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-sky-400 font-bold">/</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-sky-400 font-bold">P</kbd></td></tr>
+                  <tr><td class="py-1 text-gray-400">Shield Bubble</td><td class="text-right py-1"><kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-blue-300 font-bold">Right Shift</kbd> or <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-blue-300 font-bold">↓</kbd></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="bg-gray-800/60 p-3 rounded-xl border border-gray-700/60 text-xs text-gray-300 space-y-1">
+            <span class="font-bold text-yellow-400">💡 Combat Pro-Tips:</span>
+            <ul class="list-disc list-inside space-y-0.5 text-gray-400">
+              <li><strong class="text-white">Smash Attack:</strong> Press the Smash key or press Attack while holding Left/Right to deal heavy launch knockback.</li>
+              <li><strong class="text-white">Double Jump:</strong> Every fighter has 2 jumps for aerial recovery back onto the stage.</li>
+              <li><strong class="text-white">Invulnerable Spawn:</strong> Fighters spawn on a temporary solid platform with 5.0 seconds of invulnerability. Moving or jumping drops the platform immediately.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tab 2: Switch Joy-Con -->
+        <div id="tab-panel-joycon" class="controls-tab-panel hidden space-y-3.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button id="btnProfileRightJoyConP1" class="bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 p-3.5 rounded-xl text-left transition shadow active:scale-98">
+              <div class="font-bold text-sm text-white">⚡ Quick Assign Right Joy-Con ➔ P1</div>
+              <div class="text-xs text-red-100">Calibrates 90° horizontal stick rotation for P1</div>
+            </button>
+            <button id="btnProfileResetAll" class="bg-gray-800 hover:bg-gray-700 p-3.5 rounded-xl text-left border border-gray-700 transition active:scale-98">
+              <div class="font-bold text-sm text-white">🔄 Rescan Gamepads</div>
+              <div class="text-xs text-gray-400">Refreshes Bluetooth and USB controller list</div>
+            </button>
+          </div>
+
+          <div class="bg-gray-900/90 border border-gray-800 p-3.5 rounded-xl text-xs space-y-2">
+            <div class="font-bold text-yellow-400">Single Joy-Con (Horizontal) Layout</div>
+            <table class="w-full text-gray-300 font-mono text-[11px]">
+              <tbody class="divide-y divide-gray-800">
+                <tr><td class="py-1 text-gray-400">Analog Stick</td><td class="text-right py-1">Movement & Aiming (Horizontal translation)</td></tr>
+                <tr><td class="py-1 text-gray-400">Right / Bottom Face Button</td><td class="text-right py-1">Jump</td></tr>
+                <tr><td class="py-1 text-gray-400">Left Face Button</td><td class="text-right py-1">Jab Attack</td></tr>
+                <tr><td class="py-1 text-gray-400">Top Face Button</td><td class="text-right py-1">Special Signature Move</td></tr>
+                <tr><td class="py-1 text-gray-400">Top Shoulder Buttons (SL / SR)</td><td class="text-right py-1">Shield Bubble</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 3: Standard Gamepad -->
+        <div id="tab-panel-gamepad" class="controls-tab-panel hidden space-y-3.5">
+          <div class="bg-gray-900/90 border border-gray-800 p-3.5 rounded-xl text-xs space-y-2">
+            <div class="font-bold text-yellow-400">Xbox / PlayStation / Generic USB Layout</div>
+            <table class="w-full text-gray-300 font-mono text-[11px]">
+              <tbody class="divide-y divide-gray-800">
+                <tr><td class="py-1 text-gray-400">Left Analog / D-Pad</td><td class="text-right py-1">Movement</td></tr>
+                <tr><td class="py-1 text-gray-400">A / Y (Cross / Triangle)</td><td class="text-right py-1">Jump</td></tr>
+                <tr><td class="py-1 text-gray-400">X (Square)</td><td class="text-right py-1">Jab (Light Attack)</td></tr>
+                <tr><td class="py-1 text-gray-400">B (Circle)</td><td class="text-right py-1">Special Move</td></tr>
+                <tr><td class="py-1 text-gray-400">LB / RB / Triggers (L1 / R1 / L2 / R2)</td><td class="text-right py-1">Shield Bubble</td></tr>
+                <tr><td class="py-1 text-gray-400">Tilt Stick + X / Right Stick</td><td class="text-right py-1">Smash Attack</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-3 border-t border-gray-800 flex flex-wrap items-center justify-between gap-2 text-xs flex-shrink-0">
         <label class="flex items-center space-x-1.5 text-gray-300 cursor-pointer">
           <input type="checkbox" id="chkFlipAxes" class="rounded bg-gray-800 border-gray-700 text-red-500">
           <span>Invert Joy-Con (R) Stick Axes</span>
         </label>
-        <button id="btnDoneGripModal" class="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-6 py-2 rounded-xl transition shadow">
-          DONE
+        <button id="btnDoneGripModal" class="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-7 py-2 rounded-xl transition shadow active:scale-95">
+          CLOSE / DONE
         </button>
       </div>
     </div>

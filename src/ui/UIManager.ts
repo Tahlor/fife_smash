@@ -215,7 +215,15 @@ export class UIManager {
     if (btnOpenGrip) {
       btnOpenGrip.onclick = () => {
         this.events.onSoundEffect('select');
-        this.controllerModal.show();
+        this.controllerModal.show('keyboard');
+      };
+    }
+
+    const btnControlsHint = document.getElementById('btnOpenControlsHint');
+    if (btnControlsHint) {
+      btnControlsHint.onclick = () => {
+        this.events.onSoundEffect('select');
+        this.controllerModal.show('keyboard');
       };
     }
 
